@@ -89,7 +89,7 @@ class STC3100:
 
     def read_current(self):
         current = ubinascii.hexlify(self.i2c.readfrom_mem(self.address, REG_CURRENT_LOW,2)).decode('ascii') #Read
-        if current[2:] == '3f': #I don't know why but sometimes '3f' is here when there should be a 0. 3.7A in idle on a lopy4 seems obviously wrong...
+        if current[2:] == '3f': #Unused bits
             current = current[:2] #Invert
         else:
             current = current[2:] + current[:2]
