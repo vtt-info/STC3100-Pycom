@@ -1,4 +1,4 @@
-![https://img.shields.io/github/license/ValentinGrim/STC3100-Pycom]
+![License](https://img.shields.io/github/license/ValentinGrim/STC3100-Pycom)
 
 # STC3100-Pycom
 
