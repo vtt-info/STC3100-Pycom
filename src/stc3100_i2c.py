@@ -70,8 +70,8 @@ class STC3100:
         self.i2c.writeto_mem(self.address,REG_CTRL,2) #Reset...
 
     def read_charge(self):
-        charge = ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_CHARGE_HIGH,1)).decode('ascii') #Read [8..15] bits
-        charge += ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_CHARGE_LOW,1)).decode('ascii') #Read [0..7] bits
+        charge = ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_CHARGE_LOW,2)).decode('ascii') #Read
+        charge = charge[2:] + charge [:2] #Invert
 
         charge = int(charge,16)     #Hex to int
         charge = (charge/65535)*100 #Int to %
@@ -79,8 +79,8 @@ class STC3100:
         return charge
 
     def read_voltage(self):
-        voltage = ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_VOLTAGE_HIGH,1)).decode('ascii') #Read [8..15] bits
-        voltage += ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_VOLTAGE_LOW,1)).decode('ascii')  #Read [0..7] bits
+        voltage = ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_VOLTAGE_LOW,2)).decode('ascii') #Read
+        voltage = voltage[2:] + voltage[:2] #Invert
 
         voltage = int(voltage,16) #Hex to int
         voltage *= VOLTAGE_SCALE  #Int to mV
@@ -88,22 +88,20 @@ class STC3100:
         return voltage
 
     def read_current(self):
-        current = self.i2c.readfrom_mem(self.address,0x7,1).decode('ascii') #Read [8..15] bits
-        if current == '?': #I don't know why but sometimes '?' is here when there should be a 0. 3.7A in idle on a lopy4 seems obviously wrong...
-            current = '0'
-        else : 
-            current = ubinascii.hexlify(current)
-        current += ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_CURRENT_LOW,1)).decode('ascii')  #Read [0..7] bits
-        print(current)
+        current = ubinascii.hexlify(self.i2c.readfrom_mem(self.address, REG_CURRENT_LOW,2)).decode('ascii') #Read
+        if current[2:] == '3f': #I don't know why but sometimes '3f' is here when there should be a 0. 3.7A in idle on a lopy4 seems obviously wrong...
+            current = current[:2] #Invert
+        else:
+            current = current[2:] + current[:2]
+
         current = int(current,16) #Hex to int
-        print(current)
         current *= CURRENT_SCALE  #Int to mA.h
 
         return current
 
     def read_temp(self):
-        temp = ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_TEMP_HIGH,1)).decode('ascii') #Read [8..15] bits
-        temp += ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_TEMP_LOW,1)).decode('ascii')  #Read [0..7] bits
+        temp = ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_TEMP_LOW,2)).decode('ascii') #Read [8..15] bits
+        temp = temp[2:] + temp [:2] #Invert
 
         temp = int(temp,16) #Hex to int
         temp *= TEMP_SCALE  #Int to mA.h
@@ -111,8 +109,8 @@ class STC3100:
         return temp 
 
     def read_counter(self):
-        counter = ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_COUNTER_HIGH,1)).decode('ascii') #Read [8..15] bits
-        counter += ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_COUNTER_LOW,1)).decode('ascii')  #Read [0..7] bits
+        counter = ubinascii.hexlify(self.i2c.readfrom_mem(self.address,REG_COUNTER_LOW,2)).decode('ascii')
+        counter = counter[2:] + counter[:2] #Invert
 
         counter = int(counter,16) #Hex to int
 
