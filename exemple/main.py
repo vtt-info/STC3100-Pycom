@@ -9,7 +9,7 @@ import utime
 
 i2c = I2C(pins=('P10','P11'))
 
-stc = stc3100.STC3100(i2c=i2c,resolution=0)
+stc = stc3100.STC3100(i2c=i2c,resolution=0, shunt_res=50)
 stc.start()
 
 utime.sleep_ms(550) #Reading time for 14bits +50ms for safety see docs

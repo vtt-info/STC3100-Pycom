@@ -31,13 +31,14 @@ STC_ADDR         = 0x70  # Default I2C address
 #Scale
 
 VOLTAGE_SCALE    = 2.44  # In mV. See doc part 7.2
-TEMP_SCALE       = 0.125 # In °C. //
-CURRENT_SCALE    = 0.2   # In mA.h. See doc part 7.1
+TEMP_SCALE       = 0.125 # In °C. 
+CURRENT_SCALE    = 48210 
+
 
 
 class STC3100:
 
-    def __init__(self,address=STC_ADDR,i2c=None,resolution=0):
+    def __init__(self,address=STC_ADDR,i2c=None,resolution=0,shunt_res=30):
 
         self.address=address
 
@@ -48,8 +49,13 @@ class STC3100:
 
         if resolution < 0 and resolution > 2:
             raise ValueError('Resolution should be 0 , 1 or 2')
-            
+
         self.resolution = resolution*2 #Bits 1 and 2 of REG_MODE determine AD resolution. xx00x is 14bits xx01x is 13bits and xx10x is 12bits so x2
+
+        if shunt_res < 10 and shunt_res > 50:
+            raise ValueError('Shunt resistor should be between 0.01 and 0.05 ohms')
+
+        self.shunt_res = shunt_res
 
         data = 24 + self.resolution #send to REG_MODE 11xx0 start + calibration
 
@@ -89,13 +95,15 @@ class STC3100:
 
     def read_current(self):
         current = ubinascii.hexlify(self.i2c.readfrom_mem(self.address, REG_CURRENT_LOW,2)).decode('ascii') #Read
-        if current[2:] == '3f': #Unused bits
-            current = current[:2] #Invert
-        else:
-            current = current[2:] + current[:2]
-
         current = int(current,16) #Hex to int
-        current *= CURRENT_SCALE  #Int to mA.h
+
+        current &= 0x3fff #Mask unused bits
+
+        if current >= 0x2000:
+            current -= 0x4000
+            current *= -1
+ 
+        current = (current * (CURRENT_SCALE/self.shunt_res)) / 4096
 
         return current
 
