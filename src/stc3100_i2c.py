@@ -1,5 +1,5 @@
 #  Here you can find a lib for STC3100 working on Pycom, tested on Lopy4 OEM on custom board
-#  Created by Valentin MONNOT
+#  Created by Valentin MONNOT inspired by https://github.com/st-sw/STC3100_GenericDriver
 #  12/07/2021
 #  MIT-License
 
@@ -30,9 +30,10 @@ STC_ADDR         = 0x70  # Default I2C address
 
 #Scale
 
-VOLTAGE_SCALE    = 2.44  # In mV. See doc part 7.2
-TEMP_SCALE       = 0.125 # In °C. 
-CURRENT_SCALE    = 48210 
+VOLTAGE_SCALE    = 2.44  # In mV. Cf. Doc part 7.2
+TEMP_SCALE       = 0.125 # In °C. Cf. Doc part 7.2
+CURRENT_SCALE    = 48210 # Cf. https://github.com/st-sw/STC3100_GenericDriver
+CHARGE_SCALE     = 27443 # //
 
 
 
@@ -53,7 +54,7 @@ class STC3100:
         self.resolution = resolution*2 #Bits 1 and 2 of REG_MODE determine AD resolution. xx00x is 14bits xx01x is 13bits and xx10x is 12bits so x2
 
         if shunt_res < 10 and shunt_res > 50:
-            raise ValueError('Shunt resistor should be between 0.01 and 0.05 ohms')
+            raise ValueError('Shunt resistor should be between 10 and 50 mOhms')
 
         self.shunt_res = shunt_res
 
@@ -80,7 +81,8 @@ class STC3100:
         charge = charge[2:] + charge [:2] #Invert
 
         charge = int(charge,16)     #Hex to int
-        charge = (charge/65535)*100 #Int to %
+        
+        charge = (charge * (CHARGE_SCALE/self.shunt_res)) / 4096 #Cf. https://github.com/st-sw/STC3100_GenericDriver
 
         return charge
 
@@ -89,6 +91,7 @@ class STC3100:
         voltage = voltage[2:] + voltage[:2] #Invert
 
         voltage = int(voltage,16) #Hex to int
+        voltage &= 0x0fff
         voltage *= VOLTAGE_SCALE  #Int to mV
 
         return voltage
@@ -98,12 +101,12 @@ class STC3100:
         current = int(current,16) #Hex to int
 
         current &= 0x3fff #Mask unused bits
-
-        if current >= 0x2000:
-            current -= 0x4000
-            current *= -1
- 
-        current = (current * (CURRENT_SCALE/self.shunt_res)) / 4096
+                                                                    #
+        if current >= 0x2000:                                       # Cf. https://github.com/st-sw/STC3100_GenericDriver
+            current -= 0x4000                                       #
+            current *= -1                                           #
+                                                                    #
+        current = (current * (CURRENT_SCALE/self.shunt_res)) / 4096 #
 
         return current
 
@@ -112,6 +115,7 @@ class STC3100:
         temp = temp[2:] + temp [:2] #Invert
 
         temp = int(temp,16) #Hex to int
+        temp &= 0x0fff
         temp *= TEMP_SCALE  #Int to mA.h
 
         return temp 
